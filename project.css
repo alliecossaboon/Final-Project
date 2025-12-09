@@ -1,0 +1,33 @@
+nav {
+    background-color: lightgreen;
+    padding: 5px;
+}
+
+nav ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+nav li {
+    padding: 5px;
+    display: inline-block;
+}
+
+nav li:hover {
+    background-color: lightgray;
+    padding: 5px;
+}
+
+nav a {
+    text-decoration: none;
+    color: white;
+    font-weight: bold;
+}
+
+#header {
+    text-align: center;
+}
