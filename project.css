@@ -54,3 +54,24 @@ nav a {
     background-color: darkolivegreen;
     color: antiquewhite;
 }
+
+/* Help Page  */
+
+.helpSection {
+    display: flex;
+    width: 600px;
+    gap: 20px; 
+    padding: 20px;
+    border: 10px solid antiquewhite;
+    background-color: darkolivegreen;
+    color: antiquewhite;
+}
+
+
+.usageGuide, .FAQs {
+    width: 200px;
+    height: auto;
+    padding: 10px;
+    border: 5px solid antiquewhite;
+    background-color: darkolivegreen;
+}
