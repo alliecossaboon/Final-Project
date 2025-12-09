@@ -1,5 +1,6 @@
+/* Home Page */
 nav {
-    background-color: lightgreen;
+    background-color: darkolivegreen;
     padding: 5px;
 }
 
@@ -24,10 +25,32 @@ nav li:hover {
 
 nav a {
     text-decoration: none;
-    color: white;
+    color: antiquewhite;
     font-weight: bold;
 }
 
 #header {
     text-align: center;
+}
+
+.flightButton{
+    width: 250px;
+    height: 75px;
+    display: block;
+    margin: 0 auto;
+    background-color: darkolivegreen;
+    color:antiquewhite;
+}
+
+/* About Page */
+.aboutSection {
+    text-align: center;
+    display: block;
+    margin: 0 auto;
+    margin-top: 20px;
+    width: 1000px;
+    padding: 15px;
+    border: 10px solid antiquewhite;
+    background-color: darkolivegreen;
+    color: antiquewhite;
 }
