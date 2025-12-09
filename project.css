@@ -42,6 +42,16 @@ nav a {
     color:antiquewhite;
 }
 
+.flightText {
+    display: block;
+    margin: 0 auto;
+    width: 300px;
+    padding: 10px;
+    font-size: 16px;
+    border: 2px solid #ccc;
+    border-radius: 5px;
+}
+
 /* About Page */
 .aboutSection {
     text-align: center;
