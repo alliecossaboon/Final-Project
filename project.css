@@ -79,13 +79,14 @@ nav a {
     display: flex;
     flex-direction: column; 
     width: 800px;
-    padding: 20px;
+    padding: 15px;
     border: 10px solid antiquewhite;
     background-color: darkolivegreen;
     color: antiquewhite;
     gap: 20px; 
     text-align: center;
     margin: 0 auto;
+    margin-top: 20px;
 }
 
 .helpContent {
