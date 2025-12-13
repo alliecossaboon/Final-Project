@@ -1,4 +1,8 @@
 /* Home Page */
+#header {
+    color: darkolivegreen;
+}
+
 nav {
     background-color: darkolivegreen;
     padding: 5px;
