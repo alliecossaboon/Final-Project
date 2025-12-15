@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flight Carbon Tool - Avi Sustain Index</title>
+    <link rel="stylesheet" href="project.css" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+  </head>
+
+  <body>
+    <nav aria-label="Primary">
+      <ul>
+        <li><a href="homepage.html">Home</a></li>
+        <li><a href="flightpage.html" aria-current="page">Carbon Tool</a></li>
+        <li><a href="aboutpage.html">About</a></li>
+        <li><a href="helppage.html">Help</a></li>
+      </ul>
+    </nav>
+
+    <main class="homeSection">
+      <h1 id="header">Flight Carbon Tool</h1>
+
+      <form id="flightForm" class="flightForm" autocomplete="off">
+        <label class="srOnly" for="flightQuery">Route</label>
+        <input
+          id="flightQuery"
+          class="flightText"
+          type="text"
+          placeholder="Example: LAX to JFK"
+          required
+        />
+        <button class="flightButton" type="submit">Calculate</button>
+      </form>
+
+      <section id="results" class="resultsSection" aria-live="polite"></section>
+
+      <section class="extrasSection">
+        <h2 class="extrasHeader">Recent Searches</h2>
+        <canvas id="historyChart" height="140"></canvas>
+      </section>
+
+      <section class="extrasSection">
+        <h2 class="extrasHeader">Route Map</h2>
+        <div id="map" style="height: 320px; border-radius: 12px;"></div>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+      const form = document.getElementById("flightForm");
+      const input = document.getElementById("flightQuery");
+      const results = document.getElementById("results");
+
+      let chart = null;
+
+      const map = L.map("map").setView([39.0, -98.0], 4);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 18,
+        attribution: "© OpenStreetMap"
+      }).addTo(map);
+
+      let mapLayers = [];
+      function clearMap() {
+        mapLayers.forEach((l) => map.removeLayer(l));
+        mapLayers = [];
+      }
+
+      results.innerHTML = `
+        <div class="resultCard">
+          <h2>Enter a route to calculate</h2>
+          <p>Use airport codes like LAX to JFK or DCA-ATL.</p>
+          <p class="resultNote">Your result will appear here after you calculate.</p>
+        </div>
+      `;
+
+      function setLoading(isLoading) {
+        const btn = form.querySelector("button[type='submit']");
+        btn.disabled = isLoading;
+        btn.textContent = isLoading ? "Calculating..." : "Calculate";
+      }
+
+      function renderError(message) {
+        results.innerHTML = `
+          <div class="resultCard errorCard">
+            <h2>Unable to calculate</h2>
+            <p>${message}</p>
+          </div>
+        `;
+      }
+
+      function renderResult(data) {
+        results.innerHTML = `
+          <div class="resultCard">
+            <h2>Estimated Carbon Score</h2>
+            <p><strong>Route:</strong> ${data.from} to ${data.to}</p>
+            <p><strong>Estimated distance:</strong> ${data.distance_km} km</p>
+            <p><strong>CO2 per passenger:</strong> ${data.co2_per_pax_kg} kg</p>
+            <p class="resultNote">Source: ${data.source}</p>
+          </div>
+        `;
+      }
+
+      function drawRouteOnMap(score) {
+        clearMap();
+
+        const hasCoords =
+          Number.isFinite(score.dep_lat) &&
+          Number.isFinite(score.dep_lon) &&
+          Number.isFinite(score.arr_lat) &&
+          Number.isFinite(score.arr_lon);
+
+        if (!hasCoords) {
+          const fallback = L.marker([39.0, -98.0]).addTo(map);
+          fallback.bindPopup(`Route ${score.from} to ${score.to}`).openPopup();
+          mapLayers.push(fallback);
+          map.setView([39.0, -98.0], 4);
+          return;
+        }
+
+        const dep = [score.dep_lat, score.dep_lon];
+        const arr = [score.arr_lat, score.arr_lon];
+
+        const depMarker = L.marker(dep).addTo(map).bindPopup(`${score.from}`);
+        const arrMarker = L.marker(arr).addTo(map).bindPopup(`${score.to}`);
+        const line = L.polyline([dep, arr], { weight: 3 }).addTo(map);
+
+        mapLayers.push(depMarker, arrMarker, line);
+        map.fitBounds(line.getBounds(), { padding: [30, 30] });
+      }
+
+      async function loadHistoryAndChart() {
+        try {
+          const res = await fetch("/api/searches");
+          const items = await res.json();
+
+          if (!res.ok) {
+            console.error("History load failed:", items);
+            return;
+          }
+
+          const labels = items.map((x) => x.query).reverse();
+          const values = items.map((x) => Number(x.co2_per_pax_kg)).reverse();
+
+          const ctx = document.getElementById("historyChart");
+
+          if (chart) chart.destroy();
+
+          chart = new Chart(ctx, {
+            type: "bar",
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: "kg CO2 per passenger",
+                  data: values
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              plugins: {
+                legend: {
+                  display: true,
+                  labels: { color: "#ffffff" }
+                }
+              },
+              scales: {
+                x: { ticks: { color: "#ffffff" } },
+                y: { ticks: { color: "#ffffff" } }
+              }
+            }
+          });
+        } catch (err) {
+          console.error("History error:", err);
+        }
+      }
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const query = input.value.trim();
+        if (!query) return;
+
+        setLoading(true);
+
+        try {
+
+          const scoreRes = await fetch("/api/score", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query })
+          });
+
+          const score = await scoreRes.json();
+
+          if (!scoreRes.ok) {
+            renderError(score.error || "Try a different route");
+            return;
+          }
+
+          renderResult(score);
+          drawRouteOnMap(score);
+
+          const saveRes = await fetch("/api/searches", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              query: `${score.from} to ${score.to}`,
+              from: score.from,
+              to: score.to,
+              distance_km: score.distance_km,
+              co2_per_pax_kg: score.co2_per_pax_kg
+            })
+          });
+
+          if (!saveRes.ok) {
+            const saveErr = await saveRes.json().catch(() => ({}));
+            console.error("History save failed:", saveErr);
+          }
+
+          // 3) Reload chart from Supabase
+          await loadHistoryAndChart();
+        } catch (err) {
+          renderError("Server error");
+          console.error(err);
+        } finally {
+          setLoading(false);
+        }
+      });
+
+      loadHistoryAndChart();
+    </script>
+  </body>
+</html>
