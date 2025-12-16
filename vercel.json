@@ -1,4 +1,16 @@
 {
   "version": 2,
-  "public": true
+  "public": true,
+  "rewrites": [
+
+    {
+      "source": "/",
+      "destination": "/homepage.html"
+    },
+
+    {
+      "source": "/(.*)",
+      "destination": "/$1"
+    }
+  ]
 }
